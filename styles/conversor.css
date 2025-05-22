@@ -1,0 +1,57 @@
+.conversor-section {
+  background: #fff;
+  margin: 2.2em auto 1.5em auto;
+  padding: 1.7em 1.3em 1.4em 1.3em;
+  border-radius: 14px;
+  box-shadow: 0 2px 14px #183c9932;
+  max-width: 650px;
+  border-left: 8px solid #2566cf60;
+}
+
+.campos-conversor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2em;
+  margin-bottom: 1.1em;
+  justify-content: space-between;
+}
+
+.campo {
+  flex: 1 1 190px;
+  display: flex;
+  flex-direction: column;
+}
+
+.campo label {
+  font-weight: bold;
+  margin-bottom: 0.3em;
+  letter-spacing: 0.01em;
+  font-size: 1.1em;
+  display: flex;
+  align-items: center;
+  gap: 0.42em;
+}
+
+.campo input[type="number"] {
+  padding: 0.6em;
+  font-size: 1.1em;
+  border-radius: 7px;
+  border: 1.4px solid #b3c6ff;
+  margin-bottom: 0.22em;
+  transition: border 0.16s;
+  background: #f7fafd;
+}
+
+.campo input[type="number"]:focus {
+  border: 1.8px solid #2566cf;
+  outline: none;
+  background: #e9f0ff;
+}
+
+.msg-error {
+  color: #c0392b;
+  font-size: 1em;
+  margin-top: 0.8em;
+  font-weight: bold;
+  letter-spacing: 0.02em;
+}
