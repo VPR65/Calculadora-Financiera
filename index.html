@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Conversor Financiero Chile</title>
+  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/conversor.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body>
+  <header>
+    <h1>
+      <img src="assets/img/logo.png" alt="Logo Conversor" class="logo-header" />
+      Conversor Financiero Chile
+    </h1>
+    <div class="fecha-hora-box">
+      <span class="fecha-icon"><i class="fa-regular fa-calendar-days"></i></span>
+      <span id="fechaActual" class="fecha-text"></span>
+      <span class="hora-icon"><i class="fa-regular fa-clock"></i></span>
+      <span id="horaActual" class="hora-text"></span>
+    </div>
+  </header>
+  <main>
+    <section class="conversor-section">
+      <h2 class="titulo-seccion">Calculadora</h2>
+      <div class="campos-conversor">
+        <div class="campo"><label for="valor-clp"><i class="fa-solid fa-dollar-sign color-clp"></i> CLP$</label><input type="number" min="0" step="any" id="valor-clp" placeholder="Pesos chilenos" /></div>
+        <div class="campo"><label for="valor-uf"><i class="fa-solid fa-coins color-uf"></i> UF</label><input type="number" min="0" step="any" id="valor-uf" placeholder="UF" /></div>
+        <div class="campo"><label for="valor-usd"><i class="fa-solid fa-dollar-sign color-usd"></i> USD ($)</label><input type="number" min="0" step="any" id="valor-usd" placeholder="Dólares" /></div>
+        <div class="campo"><label for="valor-eur"><i class="fa-solid fa-euro-sign color-eur"></i> EURO (€)</label><input type="number" min="0" step="any" id="valor-eur" placeholder="Euros" /></div>
+        <div class="campo"><label for="valor-utm"><i class="fa-solid fa-receipt color-utm"></i> UTM</label><input type="number" min="0" step="any" id="valor-utm" placeholder="UTM" /></div>
+      </div>
+      <div class="msg-error" id="msg-error"></div>
+    </section>
+
+    <section class="datos-financieros-section">
+      <h2 class="titulo-seccion">Datos Financieros</h2>
+      <ul class="lista-datos">
+        <li>
+          <span class="dato-icon"><i class="fa-solid fa-dollar-sign color-clp"></i></span>
+          <span class="dato-label">CLP$:</span>
+          <span class="dato-valor" id="cotiz-clp">-</span>
+          <div class="actualizacion-item" id="act-clp"></div>
+        </li>
+        <li>
+          <span class="dato-icon"><i class="fa-solid fa-coins color-uf"></i></span>
+          <span class="dato-label">UF:</span>
+          <span class="dato-valor" id="cotiz-uf">-</span>
+          <div class="actualizacion-item" id="act-uf"></div>
+        </li>
+        <li>
+          <span class="dato-icon"><i class="fa-solid fa-dollar-sign color-usd"></i></span>
+          <span class="dato-label">Dólar:</span>
+          <span class="dato-valor" id="cotiz-usd">-</span>
+          <div class="actualizacion-item" id="act-usd"></div>
+        </li>
+        <li>
+          <span class="dato-icon"><i class="fa-solid fa-euro-sign color-eur"></i></span>
+          <span class="dato-label">Euro:</span>
+          <span class="dato-valor" id="cotiz-eur">-</span>
+          <div class="actualizacion-item" id="act-eur"></div>
+        </li>
+        <li>
+          <span class="dato-icon"><i class="fa-solid fa-receipt color-utm"></i></span>
+          <span class="dato-label">UTM:</span>
+          <span class="dato-valor" id="cotiz-utm">-</span>
+          <div class="actualizacion-item" id="act-utm"></div>
+        </li>
+        <li>
+          <span class="dato-icon"><i class="fa-solid fa-gem color-oro"></i></span>
+          <span class="dato-label">Oro (gr):</span>
+          <span class="dato-valor" id="cotiz-oro">-</span>
+          <div class="actualizacion-item" id="act-oro"></div>
+        </li>
+        <li>
+          <span class="dato-icon"><i class="fa-solid fa-industry color-cobre"></i></span>
+          <span class="dato-label">Cobre (lb):</span>
+          <span class="dato-valor" id="cotiz-cobre">-</span>
+          <div class="actualizacion-item" id="act-cobre"></div>
+        </li>
+        <li>
+          <span class="dato-icon"><i class="fa-brands fa-btc color-btc"></i></span>
+          <span class="dato-label">Bitcoin:</span>
+          <span class="dato-valor" id="cotiz-btc">-</span>
+          <div class="actualizacion-item" id="act-btc"></div>
+        </li>
+        <li>
+          <span class="dato-icon"><i class="fa-solid fa-percent color-ipc"></i></span>
+          <span class="dato-label">IPC:</span>
+          <span class="dato-valor" id="cotiz-ipc">-</span>
+          <div class="actualizacion-item" id="act-ipc"></div>
+        </li>
+        <li>
+          <span class="dato-icon"><i class="fa-solid fa-chart-line color-imacec"></i></span>
+          <span class="dato-label">IMACEC:</span>
+          <span class="dato-valor" id="cotiz-imacec">-</span>
+          <div class="actualizacion-item" id="act-imacec"></div>
+        </li>
+      </ul>
+    </section>
+  </main>
+  <footer>
+    <small>
+      &copy; 2025 Conversor Financiero Chile.<br/>
+      Fuentes: <a href="https://mindicador.cl" target="_blank">mindicador.cl</a> · <a href="https://coingecko.com" target="_blank">coingecko.com</a> · <a href="https://metals.live" target="_blank">metals.live</a> · <a href="https://financialmodelingprep.com" target="_blank">financialmodelingprep.com</a> · <a href="https://www.kitco.com" target="_blank">kitco.com</a>
+    </small>
+  </footer>
+  <script src="js/conversor.js"></script>
+  <script>
+    function actualizaFechaHora() {
+      const ahora = new Date();
+      const opFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById("fechaActual").textContent = ahora.toLocaleDateString("es-CL", opFecha);
+      document.getElementById("horaActual").textContent = ahora.toLocaleTimeString("es-CL", { hour12: false });
+    }
+    setInterval(actualizaFechaHora, 1000);
+    actualizaFechaHora();
+  </script>
+</body>
+</html>
