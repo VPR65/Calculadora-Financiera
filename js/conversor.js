@@ -1,27 +1,51 @@
-// --- Calculadora Financiera con almacenamiento local y actualización de indicadores desde mindicador.cl ---
-// Última actualización: 2025-05-22
+// --- Calculadora Financiera de Alta Precisión v6 ---
+// Última actualización: 2025-05-23
 //
-// Este archivo obtiene los valores actualizados de los principales indicadores financieros desde la API pública de https://mindicador.cl/
+// Este archivo utiliza solo APIs públicas y sin autenticación para obtener valores actualizados de los principales indicadores económicos relevantes para Chile.
 //
-// IMPORTANTE: 
-// - El valor del BITCOIN entregado por la API está en DÓLARES. 
-//   Para mostrar el valor en PESOS CHILENOS (CLP), se multiplica por el valor del dólar observado.
-//   Ej: CLP = bitcoin_usd * dolar_observado
-// - El valor del ORO ya viene en PESOS CHILENOS POR GRAMO, no requiere conversión extra.
+// - UF y UTM: mindicador.cl (fuente oficial nacional, 1 vez al día)
+// - Dólar, Euro: exchangerate.host (actualización horaria, sin autenticación)
+// - Bitcoin: CoinGecko (minuto a minuto, sin autenticación, CLP)
+// - Oro: CoinGecko (Tether Gold/XAUT en USD, convertido a CLP por gramo, SOLO se actualiza 2 veces al día: 08:00 y 16:00, bloque horario)
 //
-// Los datos se almacenan en localStorage para evitar más de 4 consultas diarias (solo entre 07:00 y 24:00).
-// Si ocurre un error o fuera de horario, se usan los datos guardados del día.
+// Almacenamiento local (localStorage) para minimizar consultas y mantener rendimiento y experiencia de usuario.
+// Criterios y detalles de cada fuente están documentados en README.md.
 
-const MAX_CONSULTAS_DIA = 4; // Máximo de consultas por día
-const HORA_INICIO = 7;  // 07:00
-const HORA_FIN = 24;    // 24:00
+const MAX_CONSULTAS_DIA = 4;
+const HORA_INICIO = 7;
+const HORA_FIN = 24;
 
 const datos = {};
 const fechas = {};
 
 function getClaveDia() {
   const hoy = new Date();
-  return hoy.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+  return hoy.toISOString().slice(0, 10);
+}
+
+// --- Oro: actualiza solo dos veces al día (08:00 y 16:00) ---
+function getBloqueOro() {
+  const ahora = new Date();
+  const hora = ahora.getHours();
+  if (hora < 8) return "am"; // antes de las 8, usamos el bloque de la mañana
+  if (hora < 16) return "am"; // de 8 a 15:59, sigue bloque am
+  return "pm"; // desde las 16:00 bloque pm
+}
+function getClaveOro() {
+  return getClaveDia() + "_oro_" + getBloqueOro();
+}
+function guardarOroLocal(valor, fecha) {
+  localStorage.setItem(getClaveOro(), JSON.stringify({ valor, fecha }));
+}
+function cargarOroLocal() {
+  const oro = localStorage.getItem(getClaveOro());
+  if (oro) try {
+    const { valor, fecha } = JSON.parse(oro);
+    datos.oro = valor;
+    fechas.oro = fecha;
+    return true;
+  } catch (e) {}
+  return false;
 }
 
 function puedeConsultarAPI() {
@@ -62,59 +86,82 @@ function cargarDeLocalStorage() {
   return false;
 }
 
+async function fetchJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Error fetch: " + url);
+  return await res.json();
+}
+
 async function cargarIndicadores() {
-  // 1. ¿Ya tenemos datos de hoy? ¿Cuántas veces hemos consultado hoy?
   const estado = getEstadoConsultas();
   let seCargoDeLocal = false;
   if (estado.consultas >= MAX_CONSULTAS_DIA || !puedeConsultarAPI()) {
-    // Límite alcanzado o fuera de horario, usar localStorage
     seCargoDeLocal = cargarDeLocalStorage();
   }
 
+  // --- ORO: intentamos solo cargar o actualizar si corresponde --
+  let oroYaCargado = cargarOroLocal();
+
   if (!seCargoDeLocal) {
     try {
-      const res = await fetch('https://mindicador.cl/api');
-      const api = await res.json();
-
-      // CLP: Siempre es 1
+      // --- UF y UTM desde mindicador.cl ---
+      let apiM = await fetchJSON('https://mindicador.cl/api');
+      datos.uf = apiM.uf.valor;
+      fechas.uf = apiM.uf.fecha;
+      datos.utm = apiM.utm.valor;
+      fechas.utm = apiM.utm.fecha;
       datos.clp = 1;
-      fechas.clp = api.fecha ? api.fecha : "-";
+      fechas.clp = apiM.fecha ? apiM.fecha : "-";
 
-      datos.uf = api.uf.valor;
-      fechas.uf = api.uf.fecha;
+      // --- Dólar y Euro desde exchangerate.host ---
+      let apiE = await fetchJSON('https://api.exchangerate.host/latest?base=USD&symbols=CLP,EUR');
+      datos.usd = apiE.rates.CLP;
+      fechas.usd = apiE.date + " 12:00";
+      datos.eur = await (async () => {
+        let eur = await fetchJSON('https://api.exchangerate.host/latest?base=EUR&symbols=CLP');
+        fechas.eur = eur.date + " 12:00";
+        return eur.rates.CLP;
+      })();
 
-      datos.usd = api.dolar.valor;
-      fechas.usd = api.dolar.fecha;
-
-      datos.eur = api.euro.valor;
-      fechas.eur = api.euro.fecha;
-
-      datos.utm = api.utm.valor;
-      fechas.utm = api.utm.fecha;
-
-      // ORO: El valor ya viene en pesos chilenos por gramo (no requiere conversión)
-      datos.oro = api.oro?.valor ?? "-";
-      fechas.oro = api.oro?.fecha ?? "-";
-
-      // COBRE: El valor suele venir en dólares por libra
-      datos.cobre = api.libra_cobre?.valor ?? "-";
-      fechas.cobre = api.libra_cobre?.fecha ?? "-";
-
-      // BITCOIN: El valor viene en DÓLARES, se debe multiplicar por el valor del dólar para mostrarlo en pesos chilenos
-      datos.btc = (api.bitcoin?.valor && api.dolar?.valor)
-        ? api.bitcoin.valor * api.dolar.valor
+      // --- Bitcoin en CLP desde CoinGecko ---
+      let btc = await fetchJSON('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=clp&include_last_updated_at=true');
+      datos.btc = btc.bitcoin.clp;
+      fechas.btc = btc.bitcoin.last_updated_at
+        ? new Date(btc.bitcoin.last_updated_at * 1000).toISOString()
         : "-";
-      fechas.btc = api.bitcoin?.fecha ?? "-";
 
-      datos.ipc = api.ipc?.valor ?? "-";
-      fechas.ipc = api.ipc?.fecha ?? "-";
+      // --- Oro SOLO si no está ya cargado para este bloque ---
+      if (!oroYaCargado) {
+        // Usamos CoinGecko: XAUT (Tether Gold) en USD, 1 XAUT = 1 onza troy
+        // USD/CLP para conversión
+        let [oro, usdclp] = await Promise.all([
+          fetchJSON('https://api.coingecko.com/api/v3/simple/price?ids=tether-gold&vs_currencies=usd&include_last_updated_at=true'),
+          fetchJSON('https://api.exchangerate.host/latest?base=USD&symbols=CLP')
+        ]);
+        const xaut_usd = oro['tether-gold'].usd; // USD por onza troy
+        const _fecha = oro['tether-gold'].last_updated_at
+          ? new Date(oro['tether-gold'].last_updated_at * 1000).toISOString()
+          : "-";
+        const usd_clp = usdclp.rates.CLP;
+        // 1 onza troy = 31.1035 gramos
+        const valor_clp_gr = (xaut_usd * usd_clp) / 31.1035;
+        datos.oro = valor_clp_gr;
+        fechas.oro = _fecha;
+        guardarOroLocal(valor_clp_gr, _fecha);
+      }
 
-      datos.imacec = api.imacec?.valor ?? "-";
-      fechas.imacec = api.imacec?.fecha ?? "-";
+      // --- Cobre desde mindicador.cl (USD/libra) ---
+      datos.cobre = apiM.libra_cobre?.valor ?? "-";
+      fechas.cobre = apiM.libra_cobre?.fecha ?? "-";
+
+      // --- IPC e Imacec desde mindicador.cl ---
+      datos.ipc = apiM.ipc?.valor ?? "-";
+      fechas.ipc = apiM.ipc?.fecha ?? "-";
+      datos.imacec = apiM.imacec?.valor ?? "-";
+      fechas.imacec = apiM.imacec?.fecha ?? "-";
 
       guardarEnLocalStorage(datos, fechas);
       setEstadoConsultas();
-
     } catch (e) {
       document.getElementById('msg-error').textContent = "Error cargando indicadores financieros. Usando datos almacenados.";
       cargarDeLocalStorage();
@@ -153,7 +200,7 @@ function muestraCotizaciones() {
       } else if (k === "cobre") {
         cotiz.textContent = datos[k] + " USD/lb";
       } else if (k === "oro") {
-        cotiz.textContent = formatoMoneda(datos[k], 0, "CLP$ ");
+        cotiz.textContent = formatoMoneda(datos[k], 0, "CLP$ ") + " / gr";
       } else {
         cotiz.textContent = formatoMoneda(datos[k], 2, "CLP$ ");
       }
